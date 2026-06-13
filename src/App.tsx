@@ -242,6 +242,45 @@ export default function App() {
     }
   }, [athleteAccount]);
 
+  // Keep the current active athlete synced inside a local multi-user accounts pool for instant offline login & Vercel bypass
+  useEffect(() => {
+    if (athleteAccount && athleteAccount.accountId) {
+      try {
+        const saved = localStorage.getItem('jumprope_local_accounts_pool');
+        let pool: any[] = [];
+        if (saved) {
+          pool = JSON.parse(saved);
+        }
+        if (!Array.isArray(pool)) pool = [];
+
+        const index = pool.findIndex((a: any) => a && (a.accountId === athleteAccount.accountId || a.id === athleteAccount.accountId || a.username.toLowerCase() === athleteAccount.username.toLowerCase()));
+        
+        const updatedRecord = {
+          accountId: athleteAccount.accountId,
+          id: athleteAccount.accountId,
+          username: athleteAccount.username,
+          pin: athleteAccount.pin,
+          avatarIndex: athleteAccount.avatarIndex,
+          securityQuestion: athleteAccount.securityQuestion,
+          securityAnswer: athleteAccount.securityAnswer,
+          workouts: workouts,
+          weightKg: profile.weightKg,
+          dailyTarget: profile.dailyTarget,
+          theme: profile.theme || 'cosmic-slate'
+        };
+
+        if (index > -1) {
+          pool[index] = { ...pool[index], ...updatedRecord };
+        } else {
+          pool.push(updatedRecord);
+        }
+        localStorage.setItem('jumprope_local_accounts_pool', JSON.stringify(pool));
+      } catch (e) {
+        console.error('Local pool sync error:', e);
+      }
+    }
+  }, [athleteAccount, workouts, profile]);
+
   // Synchronize athlete stats with server-side leaderboard registry
   useEffect(() => {
     if (isCurrentlyLoggedIn && athleteAccount && athleteAccount.accountId) {

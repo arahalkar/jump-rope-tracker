@@ -93,26 +93,107 @@ export default function Leaderboard({ workouts, profile, athleteAccount }: Leade
     fetch('/api/leaderboard')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          const AVATAR_EMOJIS = ['🦘', '⚡', '🐯', '🦅', '🚀', '👾'];
-          const userAcctId = athleteAccount?.accountId || '';
-          
-          const mapped: Competitor[] = data
-            .filter((item: any) => item && item.id && item.id !== userAcctId) // Exclude active logged-in user to prevent duplicates
-            .map((item: any) => ({
-              id: item.id,
-              username: item.username,
-              emoji: AVATAR_EMOJIS[item.avatarIndex] || '🎖️',
-              lastUpdated: item.lastUpdated,
-              streak: Number(item.streak) || 0,
-              totalJumps: Number(item.totalJumps) || 0,
-              tier: (item.streak >= 18 ? 'Legend' : item.streak >= 10 ? 'Elite' : item.streak >= 5 ? 'Challenger' : 'Pioneer') as any
-            }));
-          setServerCompetitors(mapped);
+        let serverList = Array.isArray(data) ? data : [];
+        
+        let localPool: any[] = [];
+        try {
+          const savedPool = localStorage.getItem('jumprope_local_accounts_pool');
+          if (savedPool) {
+            localPool = JSON.parse(savedPool);
+          }
+        } catch (e) {
+          console.error('Error loading local accounts pool into leaderboard:', e);
         }
+        if (!Array.isArray(localPool)) localPool = [];
+
+        // Hybrid merge of local accounts and live server updates, deduplicating by username
+        const mergedMap = new Map<string, any>();
+
+        // 1. Process local pool
+        localPool.forEach((p: any) => {
+          if (p && p.username) {
+            const totalLocalJumps = Array.isArray(p.workouts) ? p.workouts.reduce((acc: number, w: any) => acc + (w.count || 0), 0) : 0;
+            // Calculate streak locally
+            const localStreak = p.streak !== undefined ? Number(p.streak) : 0;
+            mergedMap.set(p.username.toLowerCase(), {
+              id: p.accountId || p.id,
+              username: p.username,
+              avatarIndex: p.avatarIndex,
+              streak: localStreak,
+              totalJumps: Math.max(Number(p.totalJumps) || 0, totalLocalJumps),
+              lastUpdated: p.lastUpdated || new Date().toISOString()
+            });
+          }
+        });
+
+        // 2. Process server response over the top (keeping highest stats)
+        serverList.forEach((p: any) => {
+          if (p && p.username) {
+            const key = p.username.toLowerCase();
+            const existing = mergedMap.get(key);
+            const serverJumps = Number(p.totalJumps) || 0;
+            const serverStreak = Number(p.streak) || 0;
+
+            if (!existing || serverJumps > existing.totalJumps || serverStreak > existing.streak) {
+              mergedMap.set(key, {
+                id: p.id,
+                username: p.username,
+                avatarIndex: p.avatarIndex,
+                streak: Math.max(existing ? existing.streak : 0, serverStreak),
+                totalJumps: Math.max(existing ? existing.totalJumps : 0, serverJumps),
+                lastUpdated: p.lastUpdated || new Date().toISOString()
+              });
+            }
+          }
+        });
+
+        const userAcctId = athleteAccount?.accountId || '';
+        const AVATAR_EMOJIS = ['🦘', '⚡', '🐯', '🦅', '🚀', '👾'];
+
+        const mapped: Competitor[] = Array.from(mergedMap.values())
+          .filter((item: any) => item && item.id && item.id !== userAcctId) // Exclude active logged-in user to prevent duplicates
+          .map((item: any) => ({
+            id: item.id,
+            username: item.username,
+            emoji: AVATAR_EMOJIS[item.avatarIndex] || '🎖️',
+            streak: Number(item.streak) || 0,
+            totalJumps: Number(item.totalJumps) || 0,
+            tier: (item.streak >= 18 ? 'Legend' : item.streak >= 10 ? 'Elite' : item.streak >= 5 ? 'Challenger' : 'Pioneer') as any,
+            lastUpdated: item.lastUpdated
+          }));
+
+        setServerCompetitors(mapped);
       })
       .catch(err => {
         console.error('Failed to query leaderboard directory:', err);
+        // Clean Offline Backup Fallback: display solely from local accounts pool
+        let localPool: any[] = [];
+        try {
+          const savedPool = localStorage.getItem('jumprope_local_accounts_pool');
+          if (savedPool) {
+            localPool = JSON.parse(savedPool);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        if (Array.isArray(localPool)) {
+          const userAcctId = athleteAccount?.accountId || '';
+          const AVATAR_EMOJIS = ['🦘', '⚡', '🐯', '🦅', '🚀', '👾'];
+          const mapped: Competitor[] = localPool
+            .filter((p: any) => p && p.username && (p.accountId || p.id) !== userAcctId)
+            .map((p: any) => {
+              const totalLocalJumps = Array.isArray(p.workouts) ? p.workouts.reduce((acc: number, w: any) => acc + (w.count || 0), 0) : 0;
+              return {
+                id: p.accountId || p.id,
+                username: p.username,
+                emoji: AVATAR_EMOJIS[p.avatarIndex] || '🎖️',
+                streak: Number(p.streak) || 0,
+                totalJumps: Math.max(Number(p.totalJumps) || 0, totalLocalJumps),
+                tier: (p.streak >= 18 ? 'Legend' : p.streak >= 10 ? 'Elite' : p.streak >= 5 ? 'Challenger' : 'Pioneer') as any
+              };
+            });
+          setServerCompetitors(mapped);
+        }
       })
       .finally(() => {
         setIsLoadingServerList(false);

@@ -400,6 +400,73 @@ export function LoginScreen({ athleteAccount, onUnlock, onLoginAnotherAccount, a
     setIsLoadingSwitch(true);
     setSwitchError('');
 
+    // Offline-First Checking: Check the local localStorage pool of registered accounts
+    let matchingLocalAccount: any = null;
+    try {
+      const savedPool = localStorage.getItem('jumprope_local_accounts_pool');
+      if (savedPool) {
+        const pool = JSON.parse(savedPool);
+        if (Array.isArray(pool)) {
+          matchingLocalAccount = pool.find((a: any) => 
+            a && a.username && a.username.toLowerCase() === switchUsername.trim().toLowerCase()
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Error reading local profiles backup:', err);
+    }
+
+    if (matchingLocalAccount) {
+      // Validate secure PIN credentials locally immediately (bypass serverless scaling timeouts)
+      if (matchingLocalAccount.pin === switchPin) {
+        setIsLoadingSwitch(false);
+        playBeep(1100, 0.25, beepVolume);
+        
+        if (onLoginAnotherAccount) {
+          onLoginAnotherAccount(
+            {
+              username: matchingLocalAccount.username,
+              pin: matchingLocalAccount.pin,
+              avatarIndex: matchingLocalAccount.avatarIndex,
+              securityQuestion: matchingLocalAccount.securityQuestion,
+              securityAnswer: matchingLocalAccount.securityAnswer,
+              accountId: matchingLocalAccount.accountId || matchingLocalAccount.id
+            },
+            matchingLocalAccount.workouts || [],
+            matchingLocalAccount.weightKg || 72,
+            matchingLocalAccount.dailyTarget || 1000,
+            matchingLocalAccount.theme || 'cosmic-slate'
+          );
+        }
+
+        // Send background fire-and-forget server sync in case server function is awake
+        fetch('/api/accounts/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: matchingLocalAccount.accountId || matchingLocalAccount.id,
+            username: matchingLocalAccount.username,
+            pin: matchingLocalAccount.pin,
+            avatarIndex: matchingLocalAccount.avatarIndex,
+            securityQuestion: matchingLocalAccount.securityQuestion,
+            securityAnswer: matchingLocalAccount.securityAnswer,
+            weightKg: matchingLocalAccount.weightKg || 72,
+            dailyTarget: matchingLocalAccount.dailyTarget || 1000,
+            workouts: matchingLocalAccount.workouts || [],
+            theme: matchingLocalAccount.theme || 'cosmic-slate'
+          })
+        }).catch(err => console.log('Background server sync skipped on cold container startup:', err));
+
+        return;
+      } else {
+        setIsLoadingSwitch(false);
+        playBeep(320, 0.3, beepVolume);
+        setSwitchError('Invalid username or PIN combination.');
+        return;
+      }
+    }
+
+    // Fallthrough: If not cached in this browser's pool yet, perform the standard live login lookup on the server
     fetch('/api/accounts/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
