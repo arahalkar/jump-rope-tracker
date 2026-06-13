@@ -411,13 +411,13 @@ export function LoginScreen({ athleteAccount, onUnlock, onLoginAnotherAccount, a
     .then(async (res) => {
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Our connection timing was interrupted, or server is still booting up. Please try again.');
+        throw new Error(`Our connection timing was interrupted, or server is still booting up (Status: ${res.status}). Please try again.`);
       }
       let data;
       try {
         data = await res.json();
       } catch (e) {
-        throw new Error('Failed to deserialize server response. Please try again.');
+        throw new Error(`Failed to deserialize server response (Status: ${res.status}). Please try again.`);
       }
       if (!res.ok) {
         throw new Error(data.error || 'Authentication credentials rejected.');
