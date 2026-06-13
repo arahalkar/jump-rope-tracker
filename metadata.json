@@ -1,0 +1,6 @@
+{
+  "name": "Jump Rope Tracker",
+  "description": "An elegant jump rope tracker to log workouts, set targets, use rhythmic metronomes, monitor pace and calories, and view historical stats.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
