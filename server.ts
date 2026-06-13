@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from "@google/genai";
 import fs from 'fs';
+import initialAccounts from './accounts.json';
 
 dotenv.config();
 
@@ -79,17 +80,9 @@ const ACCOUNTS_FILE = isServerless
 const readAccounts = () => {
   try {
     // If running in a serverless env like Vercel and the writable storage doesn't exist yet,
-    // seed it by copy-cloning the read-only accounts.json from the deployment repository
+    // seed it by stringifying our statically imported, bundled database
     if (isServerless && !fs.existsSync(ACCOUNTS_FILE)) {
-      const repoDbPath = path.join(appDirname, 'accounts.json');
-      if (fs.existsSync(repoDbPath)) {
-        fs.writeFileSync(ACCOUNTS_FILE, fs.readFileSync(repoDbPath, 'utf8'), 'utf8');
-      } else {
-        const repoDbPath2 = path.join(process.cwd(), 'accounts.json');
-        if (fs.existsSync(repoDbPath2)) {
-          fs.writeFileSync(ACCOUNTS_FILE, fs.readFileSync(repoDbPath2, 'utf8'), 'utf8');
-        }
-      }
+      fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(initialAccounts, null, 2), 'utf8');
     }
 
     if (fs.existsSync(ACCOUNTS_FILE)) {
@@ -99,7 +92,8 @@ const readAccounts = () => {
   } catch (e) {
     console.error('Error reading accounts database:', e);
   }
-  return [];
+  // Safe in-memory fallback using our statically imported JSON module
+  return Array.isArray(initialAccounts) ? initialAccounts : [];
 };
 
 const writeAccounts = (accounts: any[]) => {
@@ -112,8 +106,10 @@ const writeAccounts = (accounts: any[]) => {
 
 app.get('/api/leaderboard', (req, res) => {
   const list = readAccounts();
-  // Exclude sensitive details from general public view
-  const publicList = list.map(({ pin, securityAnswer, workouts, ...p }: any) => p);
+  // Exclude sensitive details from general public view safely
+  const publicList = list
+    .filter((p: any) => p != null)
+    .map(({ pin, securityAnswer, workouts, ...p }: any) => p);
   res.json(publicList);
 });
 
@@ -216,7 +212,7 @@ app.post('/api/leaderboard/sync', (req, res) => {
     }
 
     let list = readAccounts();
-    const existingIdx = list.findIndex((a: any) => a.id === id);
+    const existingIdx = list.findIndex((a: any) => a && a.id === id);
 
     if (existingIdx > -1) {
       const existing = list[existingIdx];
@@ -264,29 +260,45 @@ app.post('/api/leaderboard/sync', (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(appDirname, 'dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(appDirname, 'dist', 'index.html'));
+// Global error handling middleware to format and serialize all uncaught express exceptions to JSON
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('SERVER TRANSIT ERROR:', err);
+  res.status(500).json({
+    error: err?.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined,
+    source: 'global_error_middleware'
   });
-} else {
-  // Only load Vite in standalone Node local dev mode
-  if (!isServerless) {
-    const { createServer } = await import('vite');
-    const vite = await createServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
+});
+
+async function bootstrap() {
+  if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(appDirname, 'dist')));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(appDirname, 'dist', 'index.html'));
     });
-    app.use(vite.middlewares);
+  } else {
+    // Only load Vite in standalone Node local dev mode
+    if (!isServerless) {
+      const { createServer } = await import('vite');
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    }
+  }
+
+  // Start standalone dev/prod server if not deployed as a serverless function
+  if (!isServerless) {
+    const port = 3000;
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Jump Rope server listening on port ${port}`);
+    });
   }
 }
 
-// Start standalone dev/prod server if not deployed as a serverless function
-if (!isServerless) {
-  const port = 3000;
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Jump Rope server listening on port ${port}`);
-  });
-}
+bootstrap().catch((err) => {
+  console.error('Failed to bootstrap server:', err);
+});
 
 export default app;
