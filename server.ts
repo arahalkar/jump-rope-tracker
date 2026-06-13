@@ -4,7 +4,6 @@
  */
 
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -13,7 +12,12 @@ import fs from 'fs';
 
 dotenv.config();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let appDirname = '';
+try {
+  appDirname = path.dirname(fileURLToPath(import.meta.url));
+} catch (e) {
+  appDirname = process.cwd();
+}
 
 const app = express();
 app.use(express.json());
@@ -70,16 +74,21 @@ const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTI
 // On serverless, use the writable /tmp directory to read/write accounts database
 const ACCOUNTS_FILE = isServerless
   ? path.join('/tmp', 'accounts.json')
-  : path.join(process.cwd(), 'accounts.json');
+  : path.join(appDirname, 'accounts.json');
 
 const readAccounts = () => {
   try {
     // If running in a serverless env like Vercel and the writable storage doesn't exist yet,
     // seed it by copy-cloning the read-only accounts.json from the deployment repository
     if (isServerless && !fs.existsSync(ACCOUNTS_FILE)) {
-      const repoDbPath = path.join(process.cwd(), 'accounts.json');
+      const repoDbPath = path.join(appDirname, 'accounts.json');
       if (fs.existsSync(repoDbPath)) {
         fs.writeFileSync(ACCOUNTS_FILE, fs.readFileSync(repoDbPath, 'utf8'), 'utf8');
+      } else {
+        const repoDbPath2 = path.join(process.cwd(), 'accounts.json');
+        if (fs.existsSync(repoDbPath2)) {
+          fs.writeFileSync(ACCOUNTS_FILE, fs.readFileSync(repoDbPath2, 'utf8'), 'utf8');
+        }
       }
     }
 
@@ -118,12 +127,12 @@ app.post('/api/accounts/register', (req, res) => {
     let list = readAccounts();
     
     // Check if username already taken
-    const otherUser = list.find((a: any) => a.username.toLowerCase() === username.toLowerCase() && a.id !== id);
+    const otherUser = list.find((a: any) => a && a.username && a.username.toLowerCase() === username.toLowerCase() && a.id !== id);
     if (otherUser) {
       return res.status(400).json({ error: 'Username is already taken by another athlete.' });
     }
 
-    const existingIdx = list.findIndex((a: any) => a.id === id);
+    const existingIdx = list.findIndex((a: any) => a && a.id === id);
 
     const record = {
       id: id || 'ath_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36),
@@ -156,7 +165,7 @@ app.post('/api/accounts/register', (req, res) => {
     res.json({ success: true, account: record });
   } catch (e: any) {
     console.error('Registration API error:', e);
-    res.status(500).json({ error: 'Failed to save athlete account to system database.' });
+    res.status(500).json({ error: `Failed to save athlete account to system database: ${e.message || e}` });
   }
 });
 
@@ -168,7 +177,7 @@ app.post('/api/accounts/login', (req, res) => {
     }
 
     let list = readAccounts();
-    const accountIdx = list.findIndex((a: any) => a.username.toLowerCase() === username.toLowerCase());
+    const accountIdx = list.findIndex((a: any) => a && a.username && a.username.toLowerCase() === username.toLowerCase());
 
     if (accountIdx === -1) {
       return res.status(401).json({ error: 'Invalid username or PIN combination.' });
@@ -195,7 +204,7 @@ app.post('/api/accounts/login', (req, res) => {
     res.json({ success: true, account });
   } catch (e: any) {
     console.error('Login API error:', e);
-    res.status(500).json({ error: 'Failed to authenticate athlete account.' });
+    res.status(500).json({ error: `Failed to authenticate athlete account: ${e.message || e}` });
   }
 });
 
@@ -251,19 +260,20 @@ app.post('/api/leaderboard/sync', (req, res) => {
     }
   } catch (error: any) {
     console.error('Leaderboard sync failed:', error);
-    res.status(500).json({ error: 'Failed to synchronize with leaderboard directory.' });
+    res.status(500).json({ error: `Failed to synchronize with leaderboard directory: ${error.message || error}` });
   }
 });
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
+  app.use(express.static(path.join(appDirname, 'dist')));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    res.sendFile(path.join(appDirname, 'dist', 'index.html'));
   });
 } else {
   // Only load Vite in standalone Node local dev mode
   if (!isServerless) {
-    const vite = await createViteServer({
+    const { createServer } = await import('vite');
+    const vite = await createServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
