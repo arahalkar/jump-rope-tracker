@@ -627,11 +627,22 @@ I can generate custom workouts, guide you in advanced rope tricks, or help progr
         })
       });
 
-      const data = await response.json();
-      if (response.ok && data.text) {
+      let data;
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          throw new Error('Unexpected format received.');
+        }
+      } catch (err) {
+        throw new Error('Your AI Coach is taking a short breather. Please try asking again.');
+      }
+
+      if (response.ok && data?.text) {
         setCoachHistory(prev => [...prev, { role: 'model', text: data.text }]);
       } else {
-        throw new Error(data.error || 'Server returned an invalid responses.');
+        throw new Error(data?.error || 'Invalid coaching advice feedback contents.');
       }
     } catch (e: any) {
       console.error(e);
