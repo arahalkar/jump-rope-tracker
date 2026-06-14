@@ -374,11 +374,7 @@ export function LoginScreen({ athleteAccount, onUnlock, onLoginAnotherAccount, a
   useEffect(() => {
     if (showSwitchView) {
       const MASTER_ACCOUNTS = [
-        { id: 'ath_sourav', username: 'Sourav', avatarIndex: 2, pin: '2014', securityQuestion: 'first_pet', securityAnswer: 'velociloop', weightKg: 72, dailyTarget: 1000, theme: 'nordic-frost', workouts: [] },
-        { id: 'ath_testing101', username: 'Testing 101', avatarIndex: 0, pin: '0000', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 75, dailyTarget: 1000, theme: 'cosmic-slate', workouts: [] },
-        { id: 'ath_alpha', username: 'Athlete Alpha', avatarIndex: 1, pin: '1111', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 70, dailyTarget: 500, theme: 'neon-glow', workouts: [] },
-        { id: 'ath_beta', username: 'Athlete Beta', avatarIndex: 3, pin: '2222', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 80, dailyTarget: 1200, theme: 'sunset-surge', workouts: [] },
-        { id: 'ath_gamma', username: 'Athlete Gamma', avatarIndex: 4, pin: '3333', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 68, dailyTarget: 1500, theme: 'crimson-beast', workouts: [] }
+        { id: 'ath_sourav', username: 'Sourav', avatarIndex: 2, pin: '2014', securityQuestion: 'first_pet', securityAnswer: 'velociloop', weightKg: 72, dailyTarget: 1000, theme: 'nordic-frost', workouts: [] }
       ];
 
       let localPool: any[] = [];
@@ -463,11 +459,7 @@ export function LoginScreen({ athleteAccount, onUnlock, onLoginAnotherAccount, a
     setSwitchError('');
 
     const MASTER_ACCOUNTS = [
-      { id: 'ath_sourav', username: 'Sourav', avatarIndex: 2, pin: '2014', securityQuestion: 'first_pet', securityAnswer: 'velociloop', weightKg: 72, dailyTarget: 1000, theme: 'nordic-frost', workouts: [] },
-      { id: 'ath_testing101', username: 'Testing 101', avatarIndex: 0, pin: '0000', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 75, dailyTarget: 1000, theme: 'cosmic-slate', workouts: [] },
-      { id: 'ath_alpha', username: 'Athlete Alpha', avatarIndex: 1, pin: '1111', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 70, dailyTarget: 500, theme: 'neon-glow', workouts: [] },
-      { id: 'ath_beta', username: 'Athlete Beta', avatarIndex: 3, pin: '2222', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 80, dailyTarget: 1200, theme: 'sunset-surge', workouts: [] },
-      { id: 'ath_gamma', username: 'Athlete Gamma', avatarIndex: 4, pin: '3333', securityQuestion: 'favorite_sport', securityAnswer: 'velociloop', weightKg: 68, dailyTarget: 1500, theme: 'crimson-beast', workouts: [] }
+      { id: 'ath_sourav', username: 'Sourav', avatarIndex: 2, pin: '2014', securityQuestion: 'first_pet', securityAnswer: 'velociloop', weightKg: 72, dailyTarget: 1000, theme: 'nordic-frost', workouts: [] }
     ];
 
     // Offline-First Checking: Check the local localStorage pool of registered accounts

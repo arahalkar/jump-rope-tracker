@@ -1,20 +1,5 @@
 [
   {
-    "id": "ath_testing101",
-    "username": "Testing 101",
-    "avatarIndex": 0,
-    "streak": 0,
-    "totalJumps": 0,
-    "pin": "0000",
-    "securityQuestion": "favorite_sport",
-    "securityAnswer": "velociloop",
-    "workouts": [],
-    "weightKg": 75,
-    "dailyTarget": 1000,
-    "theme": "cosmic-slate",
-    "lastUpdated": "2026-06-13T00:00:00.000Z"
-  },
-  {
     "id": "ath_sourav",
     "username": "Sourav",
     "avatarIndex": 2,
@@ -28,50 +13,5 @@
     "dailyTarget": 1000,
     "theme": "nordic-frost",
     "lastUpdated": "2026-06-13T23:35:46.838Z"
-  },
-  {
-    "id": "ath_alpha",
-    "username": "Athlete Alpha",
-    "avatarIndex": 1,
-    "streak": 0,
-    "totalJumps": 0,
-    "pin": "1111",
-    "securityQuestion": "favorite_sport",
-    "securityAnswer": "velociloop",
-    "workouts": [],
-    "weightKg": 70,
-    "dailyTarget": 500,
-    "theme": "neon-glow",
-    "lastUpdated": "2026-06-13T00:00:00.000Z"
-  },
-  {
-    "id": "ath_beta",
-    "username": "Athlete Beta",
-    "avatarIndex": 3,
-    "streak": 0,
-    "totalJumps": 0,
-    "pin": "2222",
-    "securityQuestion": "favorite_sport",
-    "securityAnswer": "velociloop",
-    "workouts": [],
-    "weightKg": 80,
-    "dailyTarget": 1200,
-    "theme": "sunset-surge",
-    "lastUpdated": "2026-06-13T00:00:00.000Z"
-  },
-  {
-    "id": "ath_gamma",
-    "username": "Athlete Gamma",
-    "avatarIndex": 4,
-    "streak": 0,
-    "totalJumps": 0,
-    "pin": "3333",
-    "securityQuestion": "favorite_sport",
-    "securityAnswer": "velociloop",
-    "workouts": [],
-    "weightKg": 68,
-    "dailyTarget": 1500,
-    "theme": "crimson-beast",
-    "lastUpdated": "2026-06-13T00:00:00.000Z"
   }
 ]

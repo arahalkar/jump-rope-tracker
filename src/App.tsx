@@ -1070,6 +1070,33 @@ I can generate custom workouts, guide you in advanced rope tricks, or help progr
               <span className="hidden sm:inline">Lock App</span>
             </button>
           )}
+
+          {/* Prominent Log Out Button */}
+          {athleteAccount && (
+            <button
+              onClick={() => {
+                triggerAudioTick(350, 0.15);
+                setAthleteAccount(null);
+                setAuthMode('gateway');
+                setIsCurrentlyLoggedIn(false);
+                setWorkouts(getInitialWorkouts());
+                setProfile({
+                  weightKg: 72,
+                  dailyTarget: 1000,
+                  beepVolume: 0.5,
+                  soundEnabled: true,
+                  theme: 'cosmic-slate'
+                });
+                setShowLogoutConfirm(false);
+              }}
+              className="p-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+              title="Log Out Athlete Profile"
+              id="global-session-logout"
+            >
+              <LogOut className="w-4 h-4 text-white" />
+              <span className="hidden sm:inline">Log Out</span>
+            </button>
+          )}
         </div>
       </header>
 
